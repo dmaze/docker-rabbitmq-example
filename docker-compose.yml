@@ -1,0 +1,62 @@
+# Docker Compose description of the combined application.
+#
+# 'docker-compose up' will run this.
+version: '3'  # requires Docker Compose 1.13 or later
+
+# This section describes the various containers (services).
+services:
+  
+  rabbitmq:
+    # There is a prebuilt RabbitMQ image; see
+    # https://hub.docker.com/_/rabbitmq/ for details.
+    # This variant is built on Alpine Linux (it's smaller) and includes
+    # the management UI.
+    image: 'rabbitmq:3.6-management-alpine'
+
+    # These ports are exposed on the host; 'hostport:containerport'.
+    # You could connect to this server from outside with the *host's*
+    # DNS name or IP address and port 5672 (the left-hand side of the
+    # colon).
+    ports:
+      # The standard AMQP protocol port
+      - '5672:5672'
+      # HTTP management UI
+      - '15672:15672'
+
+    # Run this container on a private network for this application.
+    # This is necessary for magic Docker DNS to work: other containers
+    # also running on this network will see a host name "rabbitmq"
+    # (the name of this section) and the internal port 5672, even though
+    # that's not explicitly published above.
+    networks:
+      - network
+
+  consumer:
+    # If needed, Docker Compose will automatically run consumer/Dockerfile.
+    build: consumer
+
+    # Environment variables:
+    environment:
+      # The location of the RabbitMQ server.  "amqp" is the protocol;
+      # "rabbitmq" is the hostname.  Note that there is not a guarantee
+      # that the server will start first!  Telling the pika client library
+      # to try multiple times gets around this ordering issue.
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+
+    # Again, run on the private network.  Needed to see the "rabbitmq"
+    # magic Docker DNS name.
+    networks:
+      - network
+
+  publisher:
+    # Identical to the consumer.
+    build: publisher
+    environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+    networks:
+      - network
+
+networks:
+  # Declare our private network.  We must declare one for the magic
+  # Docker DNS to work, but otherwise its default settings are fine.
+  network: {}
