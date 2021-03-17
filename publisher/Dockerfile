@@ -9,7 +9,7 @@
 
 # This is based on the Python 2.7 Alpine Linux image.  See
 # https://hub.docker.com/_/python/ for details on this image.
-FROM python:2.7-alpine
+FROM python:rc-alpine3.13
 
 # Our requirements are minimal, but it's good practice to install them
 # first.  Put things that change less often towards the top of the
